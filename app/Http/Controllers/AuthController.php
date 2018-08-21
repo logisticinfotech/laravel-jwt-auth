@@ -65,7 +65,6 @@ class AuthController extends Controller
             $time = isset($request->time) ? $request->time : Config::get('jwt.ttl');
             // print_r(Carbon::now()->addSeconds($time)->timestamp);
             Config::set('jwt.ttl', $time);
-            print_r(  Config::get('jwt.ttl'));
             Artisan::call('config:clear');
             if (! $token = JWTAuth::attempt($credentials)) {
                 return response()->json(['success' => false, 'error' => 'We cant find an account with this credentials. Please make sure you entered the right information and you have verified your email address.'], 404);
@@ -105,7 +104,7 @@ class AuthController extends Controller
         }catch(TokenInvalidException $e){
             throw new AccessDeniedHttpException('The token is invalid');
         }
-        return $token;
+        return response()->json(['success' => true, 'data' => $token], 200);
     }
 
     public function recover(Request $request)
@@ -150,14 +149,14 @@ class AuthController extends Controller
             $updated = User::where('email', $authuser->email)->update(['password' =>  Hash::make($request->newpassword)]);
 
             if($updated){
-                $token = $this->token($request->header('Authorization'));
-
+                $gettoken = $this->token($request->header('Authorization'));
+                $token = $gettoken->original['data'];
             }
         } catch (JWTException $e) {
             // something went wrong whilst attempting to encode the token
             return response()->json(['success' => false, 'error' => 'Failed to change password, please try again.'], 500);
         }
-        return response()->json(['success' => true, 'data'=> [ 'message' =>'Password successfully changed','data'=>["token"=>$token]]], 200);
+        return response()->json(['success' => true, 'data'=> [ 'message' =>'Password successfully changed',"token"=>$token]], 200);
     }
 
 }
